@@ -1,0 +1,19 @@
+[package]
+name = "wtransport-examples-utilities"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.71"
+axum = "0.6.18"
+base64 = "0.21.2"
+pathsearch = "0.2.0"
+rcgen = "0.10.0"
+ring = "0.16.20"
+rustls = "0.21.1"
+time = "0.3.21"
+tokio = { version = "1.28.2", default-features = false, features = ["process"] }
+tokio-rustls = "0.24.0"
+tokio-tungstenite = "0.19.0"
+tower-http = { version = "0.4.0", features = ["fs"] }
+wtransport = { git = "https://github.com/BiagioFesta/wtransport.git", branch = "master" }
