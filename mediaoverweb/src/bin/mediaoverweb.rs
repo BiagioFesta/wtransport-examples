@@ -1,10 +1,13 @@
 use anyhow::Result;
 use frame_generator::FrameGenerator;
+use futures_util::SinkExt;
 use std::time::Duration;
-use wtransport::connection::Connecting;
+use tokio_tungstenite::tungstenite::Message;
+use wtransport::connection::{Connecting};
 use wtransport_examples_utilities::browser::launch_browser;
 use wtransport_examples_utilities::certificate::generate_certificate;
 use wtransport_examples_utilities::http_server::http_server;
+use wtransport_examples_utilities::websocket_server::{websocket_server, WebSocket};
 use wtransport_examples_utilities::webtransport_server::webtransport_server;
 
 #[tokio::main]
@@ -16,6 +19,7 @@ async fn main() -> Result<()> {
 
     let http_server = http_server("mediaoverweb/http", &certificate.fingerprint);
     let webtransport_server = webtransport_server(certificate.clone(), webtransport);
+    let websocket_server = websocket_server(certificate.clone(), websocket);
     let browser = launch_browser("localhost:4433", &certificate.fingerprint)?;
 
     tokio::select! {
@@ -23,6 +27,9 @@ async fn main() -> Result<()> {
             result?;
         }
         result = webtransport_server => {
+            result?;
+        }
+        result = websocket_server => {
             result?;
         }
         _ = browser.wait() => {}
@@ -50,6 +57,19 @@ async fn webtransport(connecting: Connecting) {
     }
 }
 
+async fn websocket(mut websocket: WebSocket) {
+    let mut frame_generator = FrameGenerator::new(800, 600);
+
+    loop {
+        let frame = frame_generator.next_frame();
+
+        websocket
+            .send(Message::Binary(frame.to_vec()))
+            .await
+            .unwrap();
+    }
+}
+
 mod frame_generator {
     use openh264::encoder::EncodedBitStream;
     use openh264::encoder::Encoder;
@@ -69,6 +89,10 @@ mod frame_generator {
     impl Frame {
         pub fn data(&self) -> &[u8] {
             &self.data
+        }
+
+        pub fn to_vec(self) -> Vec<u8> {
+            self.data.to_vec()
         }
 
         fn with_bitstream(bitstream: EncodedBitStream) -> Self {
